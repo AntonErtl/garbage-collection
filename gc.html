@@ -1,0 +1,397 @@
+<title>A Forth Garbage Collector</title>
+
+<h1>A Forth Garbage Collector</h1>
+
+or, more precisely,
+
+<h1>Storage Allocation with Automatic Reclamation</h1>
+
+<h2>Motivation</h2>
+
+When an object (in this paper, an object is just a chunk of memory) is
+no longer needed, its storage can be reclaimed and reused for other
+objects. The problem is finding out when an object is no longer needed
+(in CS terminology: the object dies). The ANS Forth memory-allocation
+wordset leaves this problem to the programmer: he must put explicit
+<code>free</code> calls in the program.
+
+<p>For sufficiently complex programs this approach leads to
+
+<dl>
+
+<dt>Bugs
+
+<dd>The program knows that an object is needed locally (in one
+context), but usually does not know whether an object is needed
+globally. If it frees the object as soon as it does no longer need it
+locally, the <em>dangling reference</em> bug rears its ugly head:
+other contexts try to access memory that has been reused for other
+purposes; in the best case the result is a crash.
+
+<p>If, OTOH, the program assumes conservatively that the object will
+be needed when it actually is dead, the result is a <em>memory
+leak</em>. Depending on the application, this kind of bug is
+acceptable or disastrous.
+
+<dt>Inefficiency <dd>There are various programming practices for
+dealing with the problem of the missing global information: A common
+approach is to copy the object instead of just passing the address
+around; in the extreme case, every context has its own copy, and can
+safely free this copy, when it is done. Needless to say, this is
+inefficient in both time and space.<!-- Henry Baker -->
+
+<dt>Maintenance Problems <dd>For every change of the program that may
+affect the lifetime of some object the programmer must deal with all
+contexts in which the object appears. I.e., many abstractions are
+broken, in particular, abstract data types. I leave the ensuing
+maintenance troubles to your imagination.
+
+</dl>
+
+To avoid these problems, high-level languages have automatic storage
+reclamation, also known as <em>garbage collection</em>. The program
+just allocates the objects, it does not have to free them explicitly;
+the system reclaims the memory after the objects die.
+
+<p>The topic of garbage collection regularly comes up in <a
+href="news:comp.lang.forth">comp.lang.forth</a>, about twice a
+year. After the last time (in February 1998), I finally sat down and
+wrote one.
+
+<p>The result is a conservative mark-and-sweep collector. It has an
+administrative memory overhead of 1.6% (with another 1.6% needed
+during allocation), which is usually better than the constant
+per-object overhead of typical implementations of the memory
+allocation wordset (in addition to this administrative overhead there
+is also the more significant fragmentation problem, which should be
+similar for both approaches).
+
+<h2>Usage</h2>
+
+Basically you allocate memory with <code>alloc ( usize -- addr ior
+)</code>, just as with <code>allocate</code>. There is no need (and no
+way) to explicitly free this memory. The address returned is naturally
+aligned for every Forth data type (including <code>dfaligned</code>;
+natural alignment is alignment to multiples of the data type
+size). The memory is initialized with zeroes.
+
+<p>However, <tt>gc.fs</tt> needs to know if there is a reference to
+the object (if there is none, the object is certainly dead, and its
+storage can be recycled). You have to follow some rules to make sure
+<tt>gc.fs</tt> notices the reference:
+
+<ul>
+
+<li>The reference must reside on the data stack, in a memory location
+specified with <code>root-address</code> (see below), or in a
+naturally aligned cell in a referenced <code>alloc</code>ed object
+(<em>naturally aligned cell</em> means that its address is divisible
+by <code>1 cells</code>).  I would have liked to add the return
+and locals stack, but unfortunately there is no standard way to access
+them, so they are out.
+
+<li>The reference is the address where the object starts (i.e., the
+address returned by <code>alloc</code>). I.e., you cannot use
+addresses pointing into the middle of an object (e.g., a pointer
+walking an array), unless you also keep a pointer to the start in a
+place where <tt>gc.fs</tt> will find it.
+
+</ul>
+
+You can declare with <code>root-address ( a-addr -- )</code> that
+<code>a-addr</code> is a memory location that may contain a reference
+to an <code>alloc</code>ed object.
+
+
+<p>Before you can enjoy these luxuries, you have to load
+<tt>gc.fs</tt>, and this requires three values on the stack:
+
+<ul>
+
+<li>The size (in address units) of the memory region that
+<tt>gc.fs</tt> manages and can give you with <code>alloc</code>.  This
+memory cannot be extended later, so better make it large enough. This
+memory is allocated using <code>allocate</code>; for good Forth/OS
+combinations (e.g., Gforth on Linux) you can ask for a lot, without
+having to pay for it until the memory is actually used (however, you
+usually have to pay for the administrative overhead (1/64)
+immediately (but only in virtual memory)).
+
+<li>A verbosity flag: in verbose mode (true) you see when the garbage
+collector becomes active (except on systems that do buffered I/O
+(e.g., Gforth <0.4.0)).
+
+<li>A flag that selects the mark method: true selects a recursive
+method that is a little faster, but requires deep data and return
+stacks, if you have deep data structures (e.g., long lists); false
+selects a pointer reversal method that is gentle on the stacks, but it
+is slightly slower and interrupting it leaves you with corrupt data
+structures. Which one is better for you depends on your environment.
+
+</ul>
+
+To work well with <code>needs</code>, loading <tt>gc.fs</tt> does not
+consume these values, so you have to remove them yourself. A typical
+loading line might look like
+
+<pre>
+64 1024 * 1024 * ( 64MB ) true false s" gc.fs" included drop 2drop
+</pre>
+
+<h2>Caveats</h2>
+
+In the Forth tradition, <tt>gc.fs</tt> is not foolproof. It merely
+turns a global problem into a local problem that is much easier to
+deal with.
+
+<h3>Dangling references</h3>
+
+If you have a reference to an object that does not point to the start,
+or that is in a place where the garbage collector does not look (e.g.,
+the return stack, some variable you have not declared as
+<code>root-address</code>, or an unaligned cell in an object), then
+this reference can become a dangling reference.
+
+<p><tt>gc.fs</tt> helps you find such bugs in the following way: It
+writes over the memory as soon as it reclaims it; this makes it easier
+for you to notice and find the bug. You can force a garbage collection
+(and its associated memory overwriting) with <code>collect-garbage (
+-- )</code>; this can be a good idea just before checking a data
+structure for consistency during debugging.
+
+<h3>Memory consumption</h3>
+
+Like every other garbage collector, <tt>gc.fs</tt> approximates
+liveness conservatively by assuming that every referenced object will
+be needed again. You can explicitly destroy references that will not
+be used again (e.g., by overwriting them with 0) to ensure minimal
+memory consumption. This is usually not necessary, but for pointers to
+large data structures it may be worthwhile. It is essential for, e.g.,
+queues implemented as linked lists, where you have to destroy the
+reference at the tail of the queue to avoid unbounded growth.
+
+<p>Note that destroying a reference is easier than using
+<code>free</code>: You just have to decide whether one reference is no
+longer needed (and you can usually do that with local information),
+whereas with <code>free</code> you have to decide whether all
+references are no longer needed.
+
+<p>The Forth system has no type information, so <tt>gc.fs</tt>
+conservatively has to assume that everything is an address (at least
+everything that is aligned like an address and is in the right
+place). As a consequence, some integer can be interpreted as a
+reference and may cause a dead object to be kept around. Usually, this
+is no big problem, but if you use huge circular data
+structures, it can be a problem: a spurious reference to just one
+object in the data structure will keep the whole data structure alive;
+at least that's what <tt>gc.fs</tt> thinks. Similarly, for long linear
+lists, one spurious reference will on average keep half of the list
+from being reclaimed. If you have such data structures, be prepared
+for irregular memory consumption. For more information on this topic,
+read [<a href="#boehm93">boehm93</a>].
+
+<h3>Writing where you should not</h3>
+
+If you write in places not given to you by the Forth system or
+<tt>gc.fs</tt> (e.g., if you write beyond the end of a chunk of memory
+you <code>alloc</code>ed), you may damage the data structures used by
+the garbage collector. This may result in mysterious bugs.
+
+<p>To make it easier to reveal such problems, <tt>gc.fs</tt> includes
+some consistency checks of its data structures. At assertion level 2
+(<code>2 assert-level !</code> before loading <tt>gc.fs</tt>), a
+number of checks are done, including a consistency check of the
+freelists before (and, to check against collector bugs, after) each
+garbage collection. At assertion level 3, the collector additionally
+checks the freelists before each <code>alloc</code>ation (this causes
+an extreme slowdown and is mainly useful for overnight regression test
+runs).
+
+<h2>Dynamic resizing</h2>
+
+In an earlier discussion (March 1997), Mark Andrew Amerman wanted to
+be able to resize objects after allocation; he was even prepared to
+pay for this by requiring another indirection for every access.
+
+<p>Although <tt>gc.fs</tt> does not support dynamic resizing directly,
+you can have it at the cost of an extra indirection, with the
+following programming technique:
+
+<p>In addition to the object to be resized, <code>alloc</code>ate a
+one-cell object: the handle, which contains a pointer to the
+object. Always access the object indirectly, do not keep direct
+pointers to it. In this way you know that only the handle points to
+the object to be resized, so when you want to resize it, you can
+simply <code>alloc</code>ate an object of the new size, copy the
+contents from the old to the new object, and store the address of the
+new object in the handle.
+
+<p>This gives you resizable objects, at the price that Amerman was
+willing to pay, without imposing any additional overhead for
+non-resizable objects.
+
+<h2>Tuning</h2>
+
+<tt>gc.fs</tt> generally uses only a part of the memory it
+manages. This policy allows you to give it a huge amount of memory to
+manage, as preparation for the worst case, without consuming that much
+real (and, for good OSes, even virtual) memory before it is necessary.
+
+<p>The amount of memory actually used is determined in the following
+way:
+
+<pre>
+memory= (a * livemem / b) + c
+</pre>
+
+Where livemem is the amount of memory in live objects after the last
+garbage collection, and a, b, and c are tunable parameters. By
+default, a/b is 3, and c is 256KB.
+
+<p>You can tune these parameters for your application: You can reduce
+the memory, at the cost of a higher number of garbage collections, or
+you can increase it to reduce the number of garbage collections. Note
+that if you reduce memory too much (to less than about 2*livemem), the
+number of garbage collections rises extremely. And if a
+garbage-collection does not free an appropriate memory chunk,
+<code>alloc</code> will grab more memory regardless of the limit.
+
+<p>The following code sequence demonstrates the adjustment of
+parameters by resetting them to their default values:
+
+<pre>
+also garbage-collector
+3 1 ( a b ) size-factor 2!
+256 1024 * ( c ) grain/ size-offset !
+set-current-limit
+previous
+</pre>
+
+The <a href="space-vs-time.eps">graph</a><!-- caption: space limit
+(logarithmic) vs. run-time on a 300MHz 21064A --> shows the effects of
+setting the limit to a fixed amount of memory. The benchmark (also
+described in Section <a href="#efficiency">Efficiency</a>) constantly has 500-1000 live objects of
+size 16-80 bytes (average: 51 bytes). Note that the amount of memory
+actually used is about 50KB during most of the benchmark unless the
+limit is higher (so reducing the limit below that just makes the
+benchmark run slower without having a significant effect on memory
+consumption). The jaggedness of the timings in the middle area is
+probably due to the freelist implementation and the random sizes of
+the allocated objects.
+
+<h2><a name="efficiency">Efficiency</a></h2>
+
+Many people think that garbage collection is slower than explicit
+deallocation with <code>free</code>. 
+
+<p>In general, this is wrong: copying collectors make it possible to
+use a very fast, <code>allot</code>-like allocator, and the collection
+overhead can be made arbitrarily small by using more memory
+(techniques like generational garbage collectors make it possible to
+reduce collection overhead without taking as much memory). In
+contrast, a memory allocator with explicit deallocation has to manage
+a freelist, which creates quite a bit of overhead.
+
+<p>However, a conservative non-copying collector also has to manage a
+freelist, so it will typically be somewhat slower than using explicit
+deallocation. But if we take the inefficiency of the programming
+techniques used to handle explicit deallocation into account, and
+spend the time we saved on programming and debugging correct
+<code>free</code>s for performance tuning, garbage collection is
+easily faster.
+
+<p>You may be more interested in real timings than in theoretical
+discussions, therefore I have converted one of the test programs into
+a benchmark: <tt>bench-gc.fs</tt>. It allocates 250,000 objects of
+size 2 cells+0..63 aus (10,793,040 bytes on a byte-addressed 32-bit
+machine); 1,000 of these objects (41,800 bytes) are alive at the end.
+
+<p>You can load <tt>bench-gc.fs</tt> with a parameter between 1 and 6
+on the stack, resulting in different storage allocation options. You
+can run the whole suite with <code>make bench</code> on your
+system. The following table shows the parameter, the storage
+allocation option, and the time used (user time or user+system time)
+on Gforth-0.3.0 on a 486-66 running Linux.
+
+<pre>
+1 GC with default tuning           23.33
+2 alloc-nocollect and free-chunk   32.63
+3 allocate and free                 5.64
+				 
+4 GC tuned for no collection       10.55+0.66
+5 allocate                          4.76+1.02
+6 allot                             4.67+0.61
+</pre>
+
+Note that this benchmark does hardly more than allocating and forgeting
+objects, making these operations the dominant factor in its
+run-time. For an application that does something useful, the difference
+between the rows will be smaller.
+
+<p>The first row shows garbage collection as it is normally used, the
+second uses the freelist management words of the garbage collector to
+implement explicit deallocation (i.e., without using the garbage
+collector). Comparing these two numbers is probably the fairest
+comparison of the two approaches. Surprisingly, explicit deallocation
+is slower (by a factor of 1.4) than garbage collection here. I have
+some theories to explain this, but no empirical support for any of
+them. Anyway, this evidence suggests that the overhead of garbage
+collection is small compared to the time spent in freelist management.
+
+<p>Of course, for explicit deallocation one would usually use
+<code>allocate</code> and <code>free</code>. The result of using this
+combination is shown in the third row. On Gforth it is much faster
+than the two <tt>gc.fs</tt>-based solutions. My explanation for this
+is:
+
+<ul>
+
+<li><tt>gc.fs</tt> runs on a threaded code system, whereas
+<code>allocate</code> and <code>free</code> are primitives that invoke
+C functions that were compiled into native code with an optimizing C
+compiler. [ertl&maierhofer95] reports that Gforth's threaded code is
+4-8 times slower than optimized C code.
+
+<li><tt>gc.fs</tt> has been written for simplicity (to avoid bugs),
+whereas the C functions called by Gforth on <code>allocate</code> and
+<code>free</code> have probably been written for speed (it is
+well-known that slow implementations of these functions result in
+significant overhead for allocation-intensive programs).
+
+</ul>
+
+The other three rows are for allocation without deallocation. In
+contrast to the first three rows, which had almost no system time
+(<0.05s), here we see some signficant system times, which probably is
+due to the 10+MB used by these benchmarks (for security reasons the OS
+must zero the pages it gives to a process). For the following
+discussion only the user time is important.
+
+<p>By comparing row 1, 2 and 4 we see the overhead of garbage
+collection, freeing and freelist management (for row 4 the freelist is
+empty, and therefore fast). The comparison of line 4 and 5 again shows
+the performance advantage of optimized C code over Gforth's threaded
+code. A comparison of row 4 and row 6 shows that even with an empty
+freelist, <code>alloc</code> has a significant overhead over
+<code>allot</code>: checking that the freelist is empty, remembering
+the borders between objects, checking whether a garbage collection
+should be performed, zeroing the returned memory.
+
+<h2>Acknowledgements</h2>
+
+If you send me comments, your name will be mentioned here.
+
+<h2>References</h2>
+
+<!-- bibhtml:start -->
+<dl>
+
+<dt><a name="boehm93">[boehm93] Hans-Juergen Boehm.</a></dt> <dd>
+  Space efficient conservative garbage collection.
+  In <em>SIGPLAN '93 Conference on Programming Language Design and
+  Implementation</em>, pages 197-206, 1993.
+  SIGPLAN Notices 28(6).
+</dd>
+
+</dl>
+<!-- bibhtml:end -->

@@ -1,0 +1,144 @@
+%!PS-Adobe-2.0 EPSF-1.2
+%%BoundingBox: 98 88 365 312
+%%Pages: 1 1
+%%DocumentFonts: Times-Roman
+%%EndComments
+1 setlinejoin
+0 0 translate
+%.91 .91 scale
+0.3 setlinewidth
+
+%transformation
+/tf {4 mul 100 add exch ln 25 mul -100 add exch} def
+/mt {tf moveto} def
+/lt {tf lineto} def
+/tf1 {instructions div tf} def
+/mt1 {tf1 moveto} def
+/lt1 {tf1 lineto} def
+
+/instructions 1 def
+
+%false (pointer reversal)
+[] 0 setdash
+5000    46.5 mt1
+10000  46.0 lt1
+15000  44.9 lt1
+20000  43.7 lt1
+25000  42.2 lt1
+30000  40.4 lt1
+35000  38.2 lt1
+40000  35.6 lt1
+45000  32.7 lt1
+50000  29.4 lt1
+60000  19.8 lt1
+70000  23.4 lt1
+80000  12.4 lt1
+90000  14.2 lt1
+100000  15.9 lt1
+120000  12.2 lt1
+140000  10.4 lt1
+160000  9.1 lt1
+180000  8.4 lt1
+200000  9.4 lt1
+250000  8.6 lt1
+300000  7.8 lt1
+350000  7.5 lt1
+400000  6.8 lt1
+500000  6.4 lt1
+600000  6.3 lt1
+800000  5.9 lt1
+1000000  5.9 lt1
+2000000  5.6 lt1
+4000000  5.4 lt1
+8000000  4.8 lt1
+16000000  3.6 lt1
+stroke
+
+%true (recursive)
+[4 4] 0 setdash
+5000  38.9 mt1
+10000  38.6 lt1
+15000  38.0 lt1
+20000  36.8 lt1
+25000  35.7 lt1
+30000  34.2 lt1
+35000  32.5 lt1
+40000  30.4 lt1
+45000  28.2 lt1
+50000  25.7 lt1
+60000  17.8 lt1
+70000  20.8 lt1
+80000  11.6 lt1
+90000  13.1 lt1
+100000  14.6 lt1
+120000  11.5 lt1
+140000  9.9 lt1
+160000  8.9 lt1
+180000  8.2 lt1
+200000  9.2 lt1
+250000  8.4 lt1
+300000  7.6 lt1
+350000  7.3 lt1
+400000  6.8 lt1
+500000  6.4 lt1
+600000  6.4 lt1
+800000  6.0 lt1
+1000000  6.0 lt1
+2000000  5.7 lt1
+4000000  5.5 lt1
+8000000  4.5 lt1
+16000000  3.3 lt1
+stroke
+
+[] 0 setdash
+/xbase 5000 def
+/xend 16000000 def
+/ybase 0 def
+/yend 50 def
+
+0.5 setlinewidth
+xbase yend mt
+xbase ybase lt
+xend ybase lt
+stroke
+
+newpath /Helvetica findfont 9 scalefont setfont
+/xjright {dup stringwidth pop neg 0 rmoveto} def
+/xjcenter {dup stringwidth pop 2 div neg 0 rmoveto} def
+/yjtop {0 -7 rmoveto} def
+/yjcenter {0 -3.5 rmoveto} def
+
+xend ybase mt 2 0 rmoveto (limit (bytes)) yjcenter show
+xbase yend mt 0 4 rmoveto (time (s)) xjcenter show
+
+
+/str 20 string def
+%x xtick
+/xtick { dup ybase mt 0 -2 rlineto 0 -2 rmoveto str cvs xjcenter yjtop show } def
+5000 xtick
+50000 xtick
+500000 xtick
+5000000 xtick
+stroke
+
+/ytick { dup xbase exch mt -2 0 rlineto -2 0 rmoveto  str cvs xjright
+   yjcenter show } def
+0 ytick
+10 ytick
+20 ytick
+30 ytick
+40 ytick
+50 ytick
+stroke
+
+/xlabel 300 def
+/ylabel 250 def
+
+0.3 setlinewidth
+xlabel ylabel 20 add moveto (pointer reversal) xjright yjcenter show
+[] 0 setdash
+xlabel 10 add ylabel 20 add moveto 20 0 rlineto stroke
+
+xlabel ylabel 10 add moveto (recursive) xjright yjcenter show
+[4 4] 0 setdash
+xlabel 10 add ylabel 10 add moveto 20 0 rlineto stroke
