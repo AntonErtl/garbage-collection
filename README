@@ -3,11 +3,14 @@ reclamation (i.e., a (conservative) garbage collector) for Forth
 (written in ANS Forth, see gc.fs for more information). It is
 distributed under the GNU General Public license (see COPYING).
 
+In the file NEWS you find information about changes relative to
+earlier versions.
+
 It has been tested with Gforth on Linux-Intel, Linux-Alpha and Digital
 Unix and on PFE and iForth under Linux-Intel.
 
-To unpack it, unzip the zip file in a directory-preserving way (AFAIK,
-PKUNZIP puts everything in the same directory by default).
+To unpack it, unzip the zip file in a directory-preserving way (i.e.,
+if you use PKUNZIP, use the option -d).
 
 To load it just perform
 
@@ -47,7 +50,7 @@ documentation in Gforth's documentation.
 Bug reports are welcome, but please make double-sure that it's not a
 bug in your program. A bug report should contain a program that
 exercises the bug, a description of the environment, and a description
-of the behavious you consider buggy.
+of the behaviour you consider buggy.
 
 I will try to fix the bugs in this package that you report. If there
 is suffient interest, I'll also refine it also with respect to

@@ -9,12 +9,14 @@ VERSION=1.0
 PACKAGE=garbage-collection-$(VERSION)
 FILES = COPYING \
 	Makefile \
+	NEWS \
 	README \
 	bench-gc.fs \
 	bench-gc2.fs \
 	compat \
 	gc.fs \
 	gc.html \
+	gc4image.fs \
 	space-vs-time.eps \
 	test-gc.fs \
 	test2-gc.fs \

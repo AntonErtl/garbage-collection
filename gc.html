@@ -103,8 +103,13 @@ You can declare with <code>root-address ( a-addr -- )</code> that
 to an <code>alloc</code>ed object.
 
 
-<p>Before you can enjoy these luxuries, you have to load
-<tt>gc.fs</tt>, and this requires three values on the stack:
+<p>Before you can enjoy these luxuries, you have to load and
+initialize the garbage collector; there are two ways to do this:
+
+<h3>Initialize when loading</h3>
+
+You simply load <tt>gc.fs</tt> with the following three values on the
+stack:
 
 <ul>
 
@@ -137,6 +142,31 @@ loading line might look like
 <pre>
 64 1024 * 1024 * ( 64MB ) true false s" gc.fs" included drop 2drop
 </pre>
+
+<h3>Separate initialization</h3>
+
+This option is useful if you want to put the garbage collector in an
+image, and initialize after you have loaded the image into the Forth
+system (on many Forth systems the region <code>allocate</code>d during
+initialization does not survive this operation).
+
+<p>For this, you have to load <tt>gc4image.fs</tt> with one argument, the
+flag selecting the mark method (see above). This flag is not consumed
+by loading the code. E.g.,
+
+<pre>
+false s" gc.fs" included drop
+</pre>
+
+To initialize the garbage collector, you have to set the size and
+verbosity (see above), and then call <code>init-gc</code>. E.g.:
+
+<pre>
+64 1024 * 1024 * ( 64MB )  gc-setmem
+true gc-verbose
+init-gc
+</pre>
+
 
 <h2>Caveats</h2>
 
@@ -270,14 +300,14 @@ previous
 The <a href="space-vs-time.eps">graph</a><!-- caption: space limit
 (logarithmic) vs. run-time on a 300MHz 21064A --> shows the effects of
 setting the limit to a fixed amount of memory. The benchmark (also
-described in Section <a href="#efficiency">Efficiency</a>) constantly has 500-1000 live objects of
-size 16-80 bytes (average: 51 bytes). Note that the amount of memory
-actually used is about 50KB during most of the benchmark unless the
-limit is higher (so reducing the limit below that just makes the
-benchmark run slower without having a significant effect on memory
-consumption). The jaggedness of the timings in the middle area is
-probably due to the freelist implementation and the random sizes of
-the allocated objects.
+described in Section <a href="#efficiency">Efficiency</a>) constantly
+has 500-1000 live objects of size 16-80 bytes (average: 51
+bytes). Note that the amount of memory actually used is about 50KB
+during most of the benchmark unless the limit is higher (so reducing
+the limit below that just makes the benchmark run slower without
+having a significant effect on memory consumption). The jaggedness of
+the timings in the middle area is probably due to the freelist
+implementation and the random sizes of the allocated objects.
 
 <h2><a name="efficiency">Efficiency</a></h2>
 
@@ -379,9 +409,18 @@ should be performed, zeroing the returned memory.
 
 <h2>Acknowledgements</h2>
 
-If you send me comments, your name will be mentioned here.
+Lars Krueger added the separate initialization.
 
 <h2>References</h2>
+
+You can find out more about conservative (and other) garbage
+collection on <a
+href="http://reality.sgi.com/employees/boehm_mti/">Hans-Juergen
+Boehm's</a> <a
+href="http://reality.sgi.com/employees/boehm_mti/gc.html">garbage
+collection page</a> (especially recommended: <a
+href="http://reality.sgi.com/employees/boehm_mti/myths.ps">Allocation
+and GC Myths</a> slides).
 
 <!-- bibhtml:start -->
 <dl>
