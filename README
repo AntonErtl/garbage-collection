@@ -1,13 +1,18 @@
 This package contains a memory allocator with automatic storage
 reclamation (i.e., a (conservative) garbage collector) for Forth
-(written in ANS Forth, see gc.fs for more information). It is
+(written in ANS Forth, see gc4image.fs for more information). It is
 distributed under the GNU General Public license (see COPYING).
 
 In the file NEWS you find information about changes relative to
 earlier versions.
 
-It has been tested with Gforth on Linux-Intel, Linux-Alpha and Digital
-Unix and on PFE and iForth under Linux-Intel.
+Version 1.2 has been tested with Gforth-0.6.2 on Linux-AMD64.
+
+Version 1.1 has been tested with Gforth-0.4.0 on Linux-Alpha and
+PFE-0.9.14 on Digital Unix.
+
+Version 1.0 has been tested with Gforth on Linux-Intel, Linux-Alpha
+and Digital Unix and on PFE and iForth under Linux-Intel.
 
 To unpack it, unzip the zip file in a directory-preserving way (i.e.,
 if you use PKUNZIP, use the option -d).

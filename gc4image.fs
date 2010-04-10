@@ -1,6 +1,6 @@
 \ memory allocation with automatic storage reclamation (garbage collection)
 
-\ Copyright (C) 1998,1999 M. Anton Ertl
+\ Copyright (C) 1998,1999,2010 M. Anton Ertl
 
 \ gc.fs is free software; you can redistribute it and/or
 \ modify it under the terms of the GNU General Public License
@@ -221,11 +221,12 @@ cell-bits log2 constant cell-bits-shift \ dependence: cell-bits is power of 2
 variable border
 variable live
 
-1 cells 1 faligned 1 dfaligned max max constant grain
-
 : grains ( u1 -- u2 )
     \ u2=u1*grain
-    [ grain log2 ] literal lshift ;
+    [ 1 cells 1 floats 1 dfloats max max aligned faligned dfaligned log2
+    ] literal lshift ;
+
+1 grains constant grain
 
 : grain/ ( u1 -- u2 )
     \ u2=u1/grain

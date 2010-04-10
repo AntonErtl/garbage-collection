@@ -1,11 +1,11 @@
-SHELL=/usr/local/bin/bash
+SHELL=/bin/bash
 FORTH=gforth
 prefix = /usr/local
 #read-only architecture-independent files
 datadir = $(prefix)/share
 forthdir = $(datadir)/gforth/site-forth
 FORTHB=gforth -m 15M -e
-VERSION=1.0
+VERSION=1.2
 PACKAGE=garbage-collection-$(VERSION)
 FILES = COPYING \
 	Makefile \
@@ -31,6 +31,8 @@ test2:
 	@echo This takes about 35min on Gforth on a 600MHz 21164A
 	time $(FORTH) -e 3 test2-gc.fs -e bye
 
+#note that these benchmarks are specific to the cell size; look at
+#appbench for a variant that is cell-size independent
 
 bench:
 	for i in 1 2 3 4 5 6; do time $(FORTHB) "$$i include bench-gc.fs bye"; done
@@ -53,4 +55,4 @@ dist:
 	-rm -rf $(PACKAGE)
 	mkdir $(PACKAGE)
 	cp -rp $(FILES) $(PACKAGE)
-	zip -r $(PACKAGE).zip $(PACKAGE)
+	zip -r -9 $(PACKAGE).zip $(PACKAGE)
